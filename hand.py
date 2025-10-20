@@ -9,9 +9,11 @@ import math
 import sys 
 import io
 
+# проверяем кодировку
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    
+
+# получаем точки рук
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
     static_image_mode=False,
@@ -65,41 +67,51 @@ def classify_gesture(hand_landmarks):
     index_tip = hand_landmarks.landmark[8]
     middle_tip = hand_landmarks.landmark[12]
     index_mcp = hand_landmarks.landmark[5]
-    
+
+    # проверка на жест указательного пальца ввурх
     if (fingers[1] and not any(fingers[2:])):
         if index_tip.y < index_mcp.y and index_tip.y < wrist.y:
             return 'Pointing Up'
-        
+
+    # проверка на жест ножниц
     elif not fingers[0] and fingers[1] and fingers[2] and not fingers[3] and not fingers[4]:
         if index_tip.y < wrist.y and middle_tip.y < wrist.y:
             return 'Scissors'
-        
+
+    # проверка на жест рока
     elif not fingers[0] and fingers[1] and not fingers[2] and not fingers[3] and fingers[4]:
         return 'Rock On'
-        
+
+    # проверка на жест камня
     elif not fingers[0] and not fingers[1] and not fingers[2] and not fingers[3] and not fingers[4]:
         return 'Rock'
-    
+
+    # проверка на жест бумаги
     elif all(fingers):
         return 'Paper'
-        
+
+    # проверка на жест пальца вверх/вниз
     elif (fingers[0] and not any(fingers[1:])):
         if thumb_tip.y < wrist.y:
             return 'Thumb up'
         elif thumb_tip.y > wrist.y:
             return 'Thumb down'
-    
+            
+    # возвращаем неизвестно если не можем угадать
     else:
         return 'Unknown'
-    
+
+# создаём камеру для записи видео в реальном времени
 cap = cv2.VideoCapture(0)
 
+# настраиваем
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = cv2.VideoWriter('output_gesture_video.mp4', fourcc, fps, (frame_width, frame_height))
 
+# записываем видео
 while cap.isOpened():
     success, image = cap.read()
     if not success:
@@ -124,6 +136,8 @@ while cap.isOpened():
     if cv2.waitKey(5) & 0xFF == 27 or cv2.getWindowProperty('Hand Gesture Recognition', cv2.WND_PROP_VISIBLE) < 1:
         break
 
+# сохраняем видео и закрываем камеру
 cap.release()
 out.release()
+
 cv2.destroyAllWindows()
